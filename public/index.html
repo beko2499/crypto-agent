@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="وكيل ذكي لاستعلامات الأسواق المالية والعملات الرقمية — مدعوم بتقنية Function Calling من Google Gemini">
+    <title>وكيل الأسواق المالية — Crypto Agent</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <!-- ═══ خلفية ═══ -->
+    <div class="bg-grid"></div>
+    <div class="bg-orbs">
+        <div class="orb orb-1"></div>
+        <div class="orb orb-2"></div>
+        <div class="orb orb-3"></div>
+    </div>
+
+    <div class="app-container">
+        <!-- ═══ المنطقة الرئيسية ═══ -->
+        <div class="main-area">
+            <!-- الشريط العلوي -->
+            <header class="app-header">
+                <div class="header-content">
+                    <div class="logo-section">
+                        <div class="logo-icon">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="12" cy="12" r="10"/>
+                                <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/>
+                                <line x1="12" y1="17" x2="12.01" y2="17"/>
+                            </svg>
+                        </div>
+                        <div class="logo-text">
+                            <h1>وكيل الأسواق المالية</h1>
+                            <span class="subtitle">AI Agent + Function Calling</span>
+                        </div>
+                    </div>
+                    <div class="status-badge" id="statusBadge">
+                        <span class="status-dot"></span>
+                        <span class="status-text">جاري الاتصال...</span>
+                    </div>
+                </div>
+            </header>
+
+            <!-- منطقة الدردشة -->
+            <main class="chat-area" id="chatArea">
+                <div class="welcome-message" id="welcomeMessage">
+                    <div class="welcome-icon">📊</div>
+                    <h2>مرحباً بك في وكيل الأسواق المالية! 🚀</h2>
+                    <p>أنا وكيل ذكي أستطيع جلب أسعار العملات الرقمية مباشرة من منصتي OKX و Bybit. اسألني أي سؤال!</p>
+                    <div class="suggestion-chips">
+                        <button class="chip" onclick="askSuggestion('كم سعر البيتكوين الآن؟')">₿ سعر البيتكوين</button>
+                        <button class="chip" onclick="askSuggestion('قارن سعر ETH بين OKX و Bybit')">⚖️ مقارنة المنصات</button>
+                        <button class="chip" onclick="askSuggestion('ما هي أعلى 5 عملات تداولاً؟')">📈 أعلى العملات</button>
+                        <button class="chip" onclick="askSuggestion('هل ارتفع سعر SOL اليوم؟')">📊 أداء Solana</button>
+                        <button class="chip" onclick="askSuggestion('كم سعر USDT وأين أفضل مكان لشرائه؟')">💵 سعر USDT</button>
+                        <button class="chip" onclick="askSuggestion('أعطني نظرة عامة على سوق الكريبتو')">🌍 نظرة عامة</button>
+                    </div>
+                </div>
+            </main>
+
+            <!-- شريط الإدخال -->
+            <footer class="input-area">
+                <div class="input-container">
+                    <textarea
+                        id="questionInput"
+                        placeholder="اسأل عن أسعار العملات الرقمية... مثال: كم سعر البيتكوين؟"
+                        rows="1"
+                        maxlength="500"
+                    ></textarea>
+                    <button class="btn-send" id="btnSend" onclick="sendQuestion()">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="22" y1="2" x2="11" y2="13"/>
+                            <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+                        </svg>
+                    </button>
+                </div>
+                <div class="input-footer">
+                    <span class="powered-by">مدعوم بـ Google Gemini Function Calling + OKX API + Bybit API</span>
+                </div>
+            </footer>
+        </div>
+
+        <!-- ═══ اللوحة الجانبية: استدعاءات الأدوات ═══ -->
+        <aside class="side-panel">
+            <div class="panel-header">
+                <div class="panel-header-icon">🔧</div>
+                <h3>استدعاءات الأدوات</h3>
+                <span class="counter" id="toolCounter">0</span>
+            </div>
+            <div class="panel-content" id="toolPanel">
+                <div class="panel-empty" id="panelEmpty">
+                    <div class="empty-icon">⚡</div>
+                    <p>عندما يستدعي الوكيل أداة، ستظهر هنا في الوقت الحقيقي!</p>
+                    <p style="margin-top: 8px; font-size: 0.75rem;">هذا يوضح كيف يعمل Function Calling</p>
+                </div>
+            </div>
+        </aside>
+    </div>
+
+    <script>
+        // ═══════════════════════════════════════════
+        // 🎓 JavaScript — منطق الواجهة
+        // ═══════════════════════════════════════════
+
+        const API_BASE = '/api';
+        const chatArea = document.getElementById('chatArea');
+        const questionInput = document.getElementById('questionInput');
+        const btnSend = document.getElementById('btnSend');
+        const statusBadge = document.getElementById('statusBadge');
+        const welcomeMessage = document.getElementById('welcomeMessage');
+        const toolPanel = document.getElementById('toolPanel');
+        const toolCounter = document.getElementById('toolCounter');
+        const panelEmpty = document.getElementById('panelEmpty');
+
+        let totalToolCalls = 0;
+
+        // ─── التحقق من حالة النظام ───
+        async function checkHealth() {
+            try {
+                const res = await fetch(`${API_BASE}/health`);
+                const data = await res.json();
+                updateStatus(data.status === 'ok' ? 'متصل' : 'غير متصل', data.status === 'ok');
+            } catch {
+                updateStatus('غير متصل', false);
+            }
+        }
+
+        function updateStatus(text, healthy) {
+            const dot = statusBadge.querySelector('.status-dot');
+            const label = statusBadge.querySelector('.status-text');
+            label.textContent = text;
+            dot.className = `status-dot ${healthy ? '' : 'offline'}`;
+        }
+
+        // ─── إرسال سؤال ───
+        async function sendQuestion() {
+            const question = questionInput.value.trim();
+            if (!question) return;
+
+            if (welcomeMessage) welcomeMessage.style.display = 'none';
+
+            addMessage('user', question);
+            questionInput.value = '';
+            questionInput.style.height = 'auto';
+
+            const loadingId = addMessage('assistant-loading', '');
+            btnSend.disabled = true;
+
+            try {
+                const res = await fetch(`${API_BASE}/chat`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ question })
+                });
+                const data = await res.json();
+
+                removeMessage(loadingId);
+
+                if (data.success) {
+                    addMessage('assistant', data.answer, data.toolCalls, data.processingTimeMs);
+                    // إضافة استدعاءات الأدوات للوحة الجانبية
+                    if (data.toolCalls && data.toolCalls.length > 0) {
+                        addToolCallsToPanel(data.toolCalls);
+                    }
+                } else {
+                    addMessage('assistant', `عذراً، حدث خطأ: ${data.error}`);
+                }
+            } catch (err) {
+                removeMessage(loadingId);
+                addMessage('assistant', `عذراً، حدث خطأ في الاتصال: ${err.message}`);
+            }
+
+            btnSend.disabled = false;
+            questionInput.focus();
+        }
+
+        function askSuggestion(question) {
+            questionInput.value = question;
+            sendQuestion();
+        }
+
+        // ─── إضافة رسالة ───
+        let messageCounter = 0;
+
+        function addMessage(type, content, toolCalls = [], timeMs = 0) {
+            const id = `msg-${++messageCounter}`;
+            const div = document.createElement('div');
+            div.id = id;
+            div.className = `message message-${type}`;
+
+            if (type === 'assistant-loading') {
+                div.className = 'message message-assistant';
+                div.innerHTML = `
+                    <div class="message-avatar">🤖</div>
+                    <div class="message-content">
+                        <div class="typing-indicator">
+                            <span></span><span></span><span></span>
+                        </div>
+                    </div>
+                `;
+            } else if (type === 'user') {
+                div.innerHTML = `
+                    <div class="message-avatar">👤</div>
+                    <div class="message-content">
+                        <p>${escapeHtml(content)}</p>
+                    </div>
+                `;
+            } else if (type === 'assistant') {
+                let toolCallsHtml = '';
+                if (toolCalls && toolCalls.length > 0) {
+                    toolCallsHtml = `
+                        <div class="tool-calls-section" onclick="this.classList.toggle('expanded')">
+                            <div class="tool-calls-header">
+                                🔧 أدوات مُستدعاة (${toolCalls.length})
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+                            </div>
+                            <div class="tool-calls-list">
+                                ${toolCalls.map(tc => `
+                                    <div class="tool-call-item">
+                                        <span class="tool-call-icon">⚡</span>
+                                        <span class="tool-call-name">${tc.toolName}</span>
+                                        <span class="tool-call-args">(${JSON.stringify(tc.args)})</span>
+                                        <span class="tool-call-time">${tc.durationMs}ms</span>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    `;
+                }
+
+                div.innerHTML = `
+                    <div class="message-avatar">🤖</div>
+                    <div class="message-content">
+                        <div class="answer-text">${formatAnswer(content)}</div>
+                        ${toolCallsHtml}
+                        ${timeMs ? `<span class="response-time">⚡ ${timeMs}ms</span>` : ''}
+                    </div>
+                `;
+            } else if (type === 'system') {
+                div.className = 'message message-system';
+                div.innerHTML = `<div class="message-content system-content"><p>${content}</p></div>`;
+            }
+
+            chatArea.appendChild(div);
+            chatArea.scrollTop = chatArea.scrollHeight;
+            return id;
+        }
+
+        // ─── إضافة استدعاءات الأدوات للوحة الجانبية ───
+        function addToolCallsToPanel(toolCalls) {
+            if (panelEmpty) panelEmpty.style.display = 'none';
+
+            for (const tc of toolCalls) {
+                totalToolCalls++;
+                toolCounter.textContent = totalToolCalls;
+
+                const card = document.createElement('div');
+                card.className = 'tool-card';
+
+                const resultPreview = typeof tc.result === 'object'
+                    ? JSON.stringify(tc.result, null, 2).substring(0, 200)
+                    : String(tc.result).substring(0, 200);
+
+                card.innerHTML = `
+                    <div class="tool-card-header">
+                        <div class="tool-card-status success">✅</div>
+                        <span class="tool-card-name">${tc.toolName}</span>
+                        <span class="tool-card-duration">${tc.durationMs}ms</span>
+                    </div>
+                    <div class="tool-card-body">
+                        <div class="tool-card-args">${JSON.stringify(tc.args)}</div>
+                        <div class="tool-card-result">${escapeHtml(resultPreview)}${resultPreview.length >= 200 ? '...' : ''}</div>
+                    </div>
+                `;
+
+                toolPanel.insertBefore(card, toolPanel.firstChild);
+            }
+        }
+
+        function removeMessage(id) {
+            const el = document.getElementById(id);
+            if (el) el.remove();
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function formatAnswer(text) {
+            return escapeHtml(text)
+                .replace(/\n/g, '<br>')
+                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                .replace(/`([^`]+)`/g, '<code style="background:rgba(139,92,246,0.15);padding:2px 6px;border-radius:4px;font-size:0.85em;color:#c4b5fd;">$1</code>');
+        }
+
+        // ─── أحداث لوحة المفاتيح ───
+        questionInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendQuestion();
+            }
+        });
+
+        questionInput.addEventListener('input', () => {
+            questionInput.style.height = 'auto';
+            questionInput.style.height = Math.min(questionInput.scrollHeight, 120) + 'px';
+        });
+
+        // ─── التهيئة ───
+        checkHealth();
+        setInterval(checkHealth, 30000);
+    </script>
+</body>
+</html>
